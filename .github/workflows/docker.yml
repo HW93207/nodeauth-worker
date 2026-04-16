@@ -21,15 +21,20 @@ jobs:
       run: |
         SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
         echo "Injecting Public SHA: $SHORT_SHA (Platform: Docker)"
+
+        # 1. Backend Injection
         sed -i "s/__DIST_COMMIT_HASH__/$SHORT_SHA/g" backend/dist/server.js || true
         sed -i "s/__DIST_COMMIT_HASH__/$SHORT_SHA/g" backend/dist/worker.js || true
-        find frontend/dist/assets -name "*.js" -exec sed -i "s/__DIST_COMMIT_HASH__/$SHORT_SHA/g" {} + || true
-
         sed -i "s/__DIST_PLATFORM__/Docker/g" backend/dist/server.js || true
-        find frontend/dist -name "*.js" -exec sed -i "s/__DIST_PLATFORM__/Docker/g" {} + || true
+
+        # 2. Frontend Injection: Icons & Manifest
+        sed -i "s/__DIST_ICON_SUFFIX__/docker/g" frontend/dist/index.html || true
+        sed -i "s/__DIST_ICON_SUFFIX__/docker/g" frontend/dist/manifest.webmanifest || true
         find frontend/dist -name "*.js" -exec sed -i "s/__DIST_ICON_SUFFIX__/docker/g" {} + || true
 
-        sed -i "s/__DIST_ICON_SUFFIX__/docker/g" frontend/dist/index.html || true
+        # 3. Frontend Injection: Version & Platform Info
+        find frontend/dist -type f \( -name "*.js" -o -name "*.html" \) -exec sed -i "s/__DIST_COMMIT_HASH__/$SHORT_SHA/g" {} + || true
+        find frontend/dist -type f \( -name "*.js" -o -name "*.html" \) -exec sed -i "s/__DIST_PLATFORM__/Docker/g" {} + || true
 
     - name: Login to DockerHub
       uses: docker/login-action@v3
