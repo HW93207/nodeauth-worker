@@ -62346,7 +62346,8 @@ var AuthService = class {
       userInfo,
       deviceKey,
       needsEmergency,
-      ...needsEmergency && { encryptionKey: this.env.ENCRYPTION_KEY }
+      ...needsEmergency && { encryptionKey: this.env.ENCRYPTION_KEY },
+      ...needsEmergency && { license: this.env.NODEAUTH_LICENSE }
     };
   }
   /**
@@ -66038,7 +66039,8 @@ var WebAuthnService = class {
           provider: "passkey"
         },
         needsEmergency,
-        ...needsEmergency && { encryptionKey: this.env.ENCRYPTION_KEY }
+        ...needsEmergency && { encryptionKey: this.env.ENCRYPTION_KEY },
+        ...needsEmergency && { license: this.env.NODEAUTH_LICENSE }
       };
     }
     throw new AppError("webauthn_login_failed", 400);
@@ -73494,7 +73496,8 @@ var Web3WalletAuthService = class {
       },
       deviceKey,
       needsEmergency,
-      ...needsEmergency && { encryptionKey: this.env.ENCRYPTION_KEY }
+      ...needsEmergency && { encryptionKey: this.env.ENCRYPTION_KEY },
+      ...needsEmergency && { license: this.env.NODEAUTH_LICENSE }
     };
   }
   /**
@@ -73602,7 +73605,7 @@ auth.post("/callback/:provider", rateLimit({
   const service = getService(c);
   const clientIp = c.req.header("CF-Connecting-IP") || "unknown";
   const userAgent = c.req.header("User-Agent") || "Unknown Device";
-  const { token, userInfo, deviceKey, needsEmergency, encryptionKey } = await service.handleOAuthCallback(providerName, body, clientIp, userAgent, body.deviceId);
+  const { token, userInfo, deviceKey, needsEmergency, encryptionKey, license } = await service.handleOAuthCallback(providerName, body, clientIp, userAgent, body.deviceId);
   setCookie(c, "auth_token", token, {
     httpOnly: true,
     secure: isSecureContext(c),
@@ -73631,7 +73634,8 @@ auth.post("/callback/:provider", rateLimit({
     userInfo,
     deviceKey: finalDeviceKey,
     needsEmergency,
-    encryptionKey
+    encryptionKey,
+    license
   });
 });
 auth.post("/logout", (c) => {
@@ -73652,6 +73656,7 @@ auth.get("/me", authMiddleware, async (c) => {
   const repository = new EmergencyRepository(c.env.DB);
   const isEmergencyConfirmed = await repository.isEmergencyConfirmed();
   const encryptionKey = !isEmergencyConfirmed ? c.env.ENCRYPTION_KEY : void 0;
+  const license = !isEmergencyConfirmed ? c.env.NODEAUTH_LICENSE : void 0;
   const { generateDeviceKey: generateDeviceKey2, encryptWithRSAPublicKey: encryptWithRSAPublicKey2 } = await Promise.resolve().then(() => (init_crypto(), crypto_exports));
   const deviceKey = await generateDeviceKey2(user.email || user.id, c.env.JWT_SECRET || "");
   const publicKey = c.req.header("X-Public-Key");
@@ -73664,7 +73669,8 @@ auth.get("/me", authMiddleware, async (c) => {
     userInfo: user,
     deviceKey: finalDeviceKey,
     needsEmergency: !isEmergencyConfirmed,
-    encryptionKey
+    encryptionKey,
+    license
   });
 });
 auth.get("/webauthn/register/options", authMiddleware, async (c) => {
@@ -73748,7 +73754,8 @@ auth.post("/webauthn/login/verify", rateLimit({
     deviceKey: finalDeviceKey,
     userInfo: result.userInfo,
     needsEmergency: result.needsEmergency,
-    encryptionKey: result.encryptionKey
+    encryptionKey: result.encryptionKey,
+    license: result.license
   });
 });
 auth.get("/webauthn/credentials", authMiddleware, async (c) => {
@@ -73834,7 +73841,8 @@ auth.post("/web3/login/verify", rateLimit({
     deviceKey: finalDeviceKey,
     userInfo: result.userInfo,
     needsEmergency: result.needsEmergency,
-    encryptionKey: result.encryptionKey
+    encryptionKey: result.encryptionKey,
+    license: result.license
   });
 });
 auth.get("/sessions", authMiddleware, async (c) => {
